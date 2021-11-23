@@ -2,11 +2,7 @@
 title: "Chipotle"
 author: "Waveley Qiu"
 date: "2021-11-22"
-output: 
-  html_document:
-    toc: true
-    toc_float: true
-    theme: lumen
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
