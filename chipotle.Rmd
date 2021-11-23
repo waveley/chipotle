@@ -1,0 +1,85 @@
+---
+title: "chipotle"
+author: "Waveley Qiu (wq2162)"
+date: "2021-11-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+library(httr)
+```
+
+First, let's scrape all Chipotle locations from the web:
+
+```{r}
+## chipotle url -- NY locations
+chipotle_url <- "https://locations.chipotle.com/ny/new-york"
+
+## read in url
+chipotle_html <-
+  read_html(chipotle_url)
+
+## helper function to parse CSS key from website
+get_chipotle_data <- function(key){
+  node <- 
+    chipotle_html %>%
+    html_elements(key) %>%
+    html_text()
+  return(node)
+}
+
+# location (street address), branch name (store name)
+chipotle_loc <- get_chipotle_data(".c-address-street-1")
+chipotle_branchname <- get_chipotle_data(".LocationName")
+
+chipotle_df <-
+  tibble(
+    name = chipotle_branchname,
+    location = chipotle_loc
+  )
+
+## import entirety of scraped page
+first_hours <-
+  tibble(
+    raw = get_chipotle_data("#main span")
+  )
+
+# ### 
+# helper function. returns boolean list.
+# takes in column and searches for specified string within each observation. 
+# if observation contains the string return "FALSE". 
+# if observation does not contain the string, return "TRUE"
+# ###
+
+exclude_str <- function(col, ind){
+  output <- !str_detect(col %>% unlist(), ind)
+  return(output)
+}
+
+# ###
+# store hours are listed under location names. 
+# temporary "new_col" created with lag on original column.
+# ###
+
+working_chipotle <-
+  first_hours %>% 
+  mutate(
+    new_col = lag(raw, 2)
+  )
+
+# nice and clean
+chipotle_df <-
+  chipotle_df %>% 
+    left_join(
+    working_chipotle,
+    by = c("name" = "new_col")
+  ) %>%
+  mutate(
+    hours = trimws(raw, which = "both")
+  ) %>%
+  select(-raw)
+```
+
